@@ -55,9 +55,9 @@ jobs:
       - name: Prepare deployment package
         run: |
           mkdir -p deploy/artifacts/api-server
-          mkdir -p deploy/artifacts/book-buddy
+          mkdir -p deploy/artifacts/bookbuddy
           cp -r artifacts/api-server/dist deploy/artifacts/api-server/dist
-          cp -r artifacts/book-buddy/dist deploy/artifacts/book-buddy/dist
+          cp -r artifacts/bookbuddy/dist deploy/artifacts/bookbuddy/dist
 
       # Upload the deploy/ folder so the deploy job can access it.
       - name: Upload artifact for deployment job
