@@ -39,7 +39,7 @@ const frontendPath = path.join(__dirname, "../../bookbuddy/dist/public");
 app.use(express.static(frontendPath));
 
 // Catch-all: send index.html for any non-API route (for client-side routing)
-app.get("*", (req, res) => {
+app.get("/*splat", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
