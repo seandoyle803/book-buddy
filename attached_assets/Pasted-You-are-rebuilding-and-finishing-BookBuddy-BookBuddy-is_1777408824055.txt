@@ -1,0 +1,769 @@
+You are rebuilding and finishing BookBuddy.
+
+BookBuddy is a premium, calm, dark mode reading habit app for college students and busy readers who want to build a consistent personal reading habit without pressure, guilt, or rigid productivity tracking.
+
+This project already has Supabase connected from previous work, but I did not like how the app was being built visually and structurally. I want you to rebuild the product experience in Replit while preserving the correct Supabase backend approach.
+
+IMPORTANT:
+No matter what, do NOT connect to a replica database.
+Never use a Replit replica database.
+Never create or depend on a local fake database as the main backend.
+Always connect to the real Supabase project.
+The source of truth is Supabase.
+
+If you see anything that appears to use a replica database, local database, mock backend, temporary in-memory backend, or fake schema, remove it or replace it with the real Supabase connection.
+
+I will provide any environment variables you need, including:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+Use Supabase as the backend for:
+- authentication
+- user profile data
+- books
+- reading sessions
+- progress
+- dashboard data
+- reading history
+
+PROJECT GOAL
+
+Build a real, polished MVP for BookBuddy.
+
+BookBuddy should help users:
+- start reading when they feel tired
+- track short reading sessions
+- see progress clearly
+- build consistency
+- recover after missed days without guilt
+- feel relieved and accomplished after reading
+
+This is not a generic reading tracker.
+This is a habit recovery and consistency product.
+
+PRODUCT CONTEXT
+
+The target user is a college student or busy person who:
+- wants to read for personal growth and enjoyment
+- often feels mentally tired after school, work, or obligations
+- defaults to scrolling when low energy
+- struggles to maintain reading consistency
+- feels guilty when they miss a day
+- loses momentum easily
+- needs visible progress and gentle encouragement
+
+The app should make the user feel:
+- calm
+- grounded
+- capable
+- relieved
+- accomplished
+- gently motivated
+
+The app should never make the user feel:
+- judged
+- behind
+- guilty
+- like they failed
+- pressured into perfection
+
+CORE PRODUCT PRINCIPLES
+
+1. Low friction
+The user should be able to start reading quickly.
+
+2. Recovery over perfection
+Missed days should not feel like failure.
+
+3. Visible progress
+Users should clearly see pages read, time read, book progress, weekly activity, and completed sessions.
+
+4. Calm emotional design
+This should feel like a quiet night reading companion, not a productivity app.
+
+5. Real backend
+Use Supabase for real auth, real data, and real persistence.
+
+SUPABASE CONNECTION REQUIREMENTS
+
+Use the official Supabase approach for a Next.js App Router project.
+
+Install and use:
+- @supabase/ssr
+- @supabase/supabase-js
+
+Do not rely only on the old browser-only Supabase setup.
+
+Environment variables must live in .env.local:
+
+NEXT_PUBLIC_SUPABASE_URL=the Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=the Supabase publishable/anon key
+
+The NEXT_PUBLIC_ prefix is required because this is a Next.js frontend client environment.
+
+Do not hardcode credentials anywhere.
+
+SUPABASE CLIENT ARCHITECTURE
+
+Create two separate Supabase clients.
+
+1. Browser client
+
+Create:
+
+src/lib/supabase/client.ts
+
+Use createBrowserClient from @supabase/ssr.
+
+This client is for:
+- Client Components
+- sign up
+- sign in
+- sign out
+- form submissions
+- logging reading sessions from the browser
+- client-side auth state
+
+It should export a createClient() function.
+
+2. Server client
+
+Create:
+
+src/lib/supabase/server.ts
+
+Use createServerClient from @supabase/ssr.
+
+This client is for:
+- Server Components
+- server-side data fetching
+- dashboard page data
+- protected page rendering
+- reading authenticated cookies from the request
+
+Wire cookies using cookies() from next/headers.
+
+The server client must read cookies with cookieStore.getAll() and write them back with cookieStore.set().
+
+Both clients must be functions, not global singletons, because server requests need fresh clients.
+
+MIDDLEWARE REQUIREMENTS
+
+Create:
+
+src/middleware.ts
+
+The middleware must:
+- run on protected routes
+- refresh Supabase sessions
+- check whether the user is authenticated
+- redirect logged out users away from protected app pages
+- redirect logged in users away from auth pages when appropriate
+- write refreshed cookies back to the response
+
+Use supabase.auth.getUser() in middleware to validate the session.
+
+Protected routes should include:
+- /dashboard
+- /session
+- /history
+- /books
+- /settings
+- /onboarding
+
+Public routes should include:
+- /
+- /login
+- /signup
+
+AUTH REQUIREMENTS
+
+Use Supabase Auth.
+
+Build:
+- landing auth screen
+- sign up screen
+- sign in screen
+- sign out behavior
+- protected route handling
+- AuthContext or equivalent client-side auth provider
+
+Create:
+
+src/lib/auth.ts
+
+This should contain:
+- signUp
+- signIn
+- signOut
+- getCurrentUser if useful
+
+Use the browser Supabase client for auth mutations.
+
+The app should listen for auth changes using:
+supabase.auth.onAuthStateChange()
+
+Auth state should update across the app automatically.
+
+DATABASE REQUIREMENTS
+
+The database should be in Supabase, not Replit.
+
+Use this app-level schema:
+
+users
+- id
+- email
+- supabase_auth_id
+- display_name
+- daily_goal_minutes
+- reminder_enabled
+- reminder_time
+- burnout_window_start
+- burnout_window_end
+- dark_mode
+- created_at
+
+books
+- id
+- user_id
+- title
+- author
+- total_pages
+- current_page
+- is_completed
+- completed_at
+- last_read_at
+- is_current
+- created_at
+
+reading_sessions
+- id
+- user_id
+- book_id
+- pages_read
+- minutes_read
+- start_page
+- end_page
+- session_date
+- notes
+- created_at
+
+Use Supabase Row Level Security.
+
+RLS should ensure:
+- users can only read and update their own profile
+- users can only read, insert, update, and delete their own books
+- users can only read, insert, update, and delete their own reading sessions
+
+Use auth.uid() to enforce ownership.
+
+IMPORTANT DATABASE TRIGGER REQUIREMENT
+
+Use a Supabase auth trigger so profile creation is automatic.
+
+When a user signs up through Supabase Auth:
+- Supabase creates a row in auth.users
+- a PostgreSQL trigger should automatically create the matching row in public.users
+- public.users.supabase_auth_id should equal auth.users.id
+- public.users.email should equal auth.users.email
+- default daily_goal_minutes should be 15
+- default reminder_enabled should be false
+- default dark_mode should be true
+
+Do not rely on fragile manual profile insertion after sign-up if the trigger exists.
+If the trigger does not exist, provide the SQL needed to create it.
+
+The trigger should be named something like:
+on_auth_user_created
+
+The function should create a user profile in public.users.
+
+DATA ACCESS PATTERN
+
+Use the server Supabase client for page-level data fetching.
+
+For example, when /dashboard loads:
+1. middleware checks the session
+2. dashboard/page.tsx creates a server Supabase client
+3. it calls supabase.auth.getUser()
+4. it fetches the matching public.users row using supabase_auth_id
+5. it fetches the user’s current book
+6. it fetches recent reading sessions
+7. it calculates weekly activity and progress
+8. it renders the page already populated with real data
+
+Use the browser client for user actions such as:
+- signing in
+- signing up
+- starting or ending a reading session
+- creating a book
+- updating current page
+- changing settings
+
+APP STRUCTURE
+
+Use a clean Next.js App Router structure.
+
+Suggested structure:
+
+src/app/
+- page.tsx
+- login/page.tsx
+- signup/page.tsx
+- onboarding/page.tsx
+- dashboard/page.tsx
+- session/page.tsx
+- history/page.tsx
+- books/page.tsx
+- settings/page.tsx
+
+src/components/
+- auth/
+- dashboard/
+- session/
+- history/
+- books/
+- ui/
+
+src/lib/
+- supabase/client.ts
+- supabase/server.ts
+- auth.ts
+- db.ts
+- calculations.ts
+
+src/contexts/
+- AuthContext.tsx
+
+src/middleware.ts
+
+AUTH SCREENS
+
+Build a polished authentication entry experience.
+
+Landing screen:
+- BookBuddy wordmark
+- calm headline
+- supportive subheadline
+- Sign Up button
+- Sign In button
+- dark premium UI
+
+Sign up screen:
+- email
+- password
+- confirm password
+- create account button
+- link to sign in
+- validation
+- loading state
+- password visibility toggle
+
+Sign in screen:
+- email
+- password
+- sign in button
+- link to sign up
+- validation
+- loading state
+- password visibility toggle
+
+Tone should be calm, supportive, and low pressure.
+
+ONBOARDING FLOW
+
+After first sign-up, send users to onboarding.
+
+Onboarding should collect:
+- display name
+- current book title
+- author
+- total pages
+- current page
+- daily goal minutes, default 15
+- reminder preference
+- reminder time
+- burnout window start
+- burnout window end
+- dark mode preference
+
+After onboarding:
+- update the users table
+- create the first book in books table
+- mark it is_current = true
+- send user to dashboard
+
+Keep onboarding short and easy.
+
+DASHBOARD HOMEPAGE
+
+The dashboard is the emotional center of the product.
+
+It should include:
+
+1. Header
+- greeting with display name
+- BookBuddy identity
+- simple settings or profile access
+
+2. Current book card
+- title
+- author
+- current page
+- total pages
+- percentage complete
+- progress bar
+- last read date
+- button to continue reading
+
+3. Primary CTA
+- large Start Reading button
+- this must be the clearest action on the page
+
+4. Low energy CTA
+- small option like “Read 2 pages”
+- this should help tired users start without pressure
+
+5. Daily goal card
+- goal minutes
+- minutes completed today
+- progress toward goal
+
+6. Momentum section
+Show supportive consistency metrics:
+- active reading days this week
+- current streak if useful
+- weekly consistency such as 4 of 7 days
+
+Do not punish missed days.
+Do not say “streak broken.”
+Use gentle language.
+
+7. Recovery card
+If the user has not read recently, show:
+- “Ready to pick it back up?”
+- “Even a few pages counts.”
+- “A short session is enough.”
+
+8. Recent activity
+Show the last 2 to 3 sessions:
+- date
+- book
+- pages read
+- minutes read
+
+READING SESSION FLOW
+
+Build a full reading session screen.
+
+Features:
+- current book shown at top
+- timer
+- start button
+- pause button
+- end session button
+- start page prefilled from current_page
+- end page input
+- pages read calculated if possible
+- minutes read tracked
+- optional notes
+- ability to save session
+
+When a session is saved:
+- insert row into reading_sessions
+- update books.current_page
+- update books.last_read_at
+- if current_page >= total_pages, mark book completed
+- show clear success confirmation
+- update dashboard data
+
+Important:
+Users must always know the session was saved.
+Use a success screen or toast.
+
+POST SESSION SUCCESS SCREEN
+
+After saving:
+- show pages read
+- show minutes read
+- show new progress percentage
+- show encouraging message
+
+Example copy:
+- “You showed up today.”
+- “Progress counts, even on low energy days.”
+- “Nice work, you kept the habit moving.”
+
+Avoid productivity pressure.
+
+READING HISTORY SCREEN
+
+Build a reading history page.
+
+Include:
+- chronological list of sessions
+- session date
+- book title
+- pages read
+- minutes read
+- notes if available
+- weekly or monthly grouping
+- active reading days per week
+- simple calendar style view if possible
+
+Calendar interactions must be clear:
+- selected day should reveal that day’s sessions
+- month navigation should be obvious
+- empty days should feel neutral
+
+BOOKS SCREEN
+
+Build a books screen.
+
+Include:
+- current book
+- completed books
+- ability to add a new book
+- ability to set a book as current
+- progress for each book
+- completed date for completed books
+
+Book details should include:
+- title
+- author
+- total pages
+- current page
+- progress percentage
+- total sessions
+- last read date
+
+SETTINGS SCREEN
+
+Build a settings screen.
+
+Include:
+- display name
+- daily goal minutes
+- reminder enabled
+- reminder time
+- burnout window start
+- burnout window end
+- dark mode
+- sign out button
+
+Settings must update Supabase.
+
+REMINDER NOTE
+
+Do not build fake push notifications unless clearly marked as placeholder.
+
+It is okay for reminder settings to be saved without actual notifications in MVP.
+If reminders are not active, clearly note that they are stored for future implementation.
+
+MOMENTUM LOGIC
+
+Create helper functions for:
+- today’s minutes read
+- active reading days this week
+- current streak
+- longest streak if useful
+- weekly consistency
+- days since last session
+- book completion percentage
+
+Streak logic should be forgiving in the UI.
+Even if a mathematical streak resets, the copy should not shame the user.
+
+RECOVERY LOGIC
+
+If days since last session is 2 or more:
+- show recovery card
+- encourage a short session
+- do not show negative copy
+
+If days since last session is 0:
+- show positive reinforcement
+
+If user has no sessions yet:
+- show supportive empty state encouraging first session
+
+DESIGN REQUIREMENTS
+
+Use a premium dark mode visual direction.
+
+Style:
+- dark background
+- soft contrast
+- rounded cards
+- clean typography
+- strong spacing
+- subtle borders
+- calm accent color
+- mobile-first responsive design
+- polished desktop layout too
+
+The app should feel:
+- calm
+- sleek
+- intentional
+- warm
+- modern
+- quiet
+
+Avoid:
+- generic templates
+- bright startup colors
+- childish badges
+- social feed energy
+- clutter
+- academic dashboard feel
+- harsh red failure states
+
+COPY REQUIREMENTS
+
+Use short, emotionally intelligent copy.
+
+Good:
+- “Ready to pick it back up?”
+- “Even a few pages counts.”
+- “You showed up today.”
+- “Progress is still progress.”
+- “A short reset is enough.”
+
+Avoid:
+- “You failed.”
+- “You missed your goal.”
+- “Streak broken.”
+- “Get back on track now.”
+- “Don’t lose momentum.”
+
+DO NOT BUILD
+
+Do not build:
+- social features
+- friends
+- comments
+- leaderboards
+- book clubs
+- academic reading tools
+- text annotation
+- deep analysis
+- AI summaries
+- noisy gamification
+- fake local database as the main backend
+- Replit replica database
+
+QUALITY EXPECTATIONS
+
+This should be a real MVP.
+
+Every core screen should be connected.
+Every core action should work.
+Data should persist in Supabase.
+Auth should protect app pages.
+The UI should be polished enough to demo.
+
+Use seed or fallback empty states carefully, but do not fake real user data when Supabase data exists.
+
+STEP BY STEP IMPLEMENTATION PLAN
+
+Follow this order:
+
+Step 1:
+Audit the existing project.
+Identify any fake backend, local database, replica database, mock auth, or disconnected data layer.
+Remove or bypass anything that conflicts with Supabase.
+
+Step 2:
+Install required packages:
+@supabase/ssr
+@supabase/supabase-js
+
+Step 3:
+Set up environment variable usage:
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+Step 4:
+Create the browser Supabase client:
+src/lib/supabase/client.ts
+
+Use createBrowserClient.
+
+Step 5:
+Create the server Supabase client:
+src/lib/supabase/server.ts
+
+Use createServerClient and Next.js cookies.
+
+Step 6:
+Create middleware:
+src/middleware.ts
+
+Use it to refresh sessions and protect routes.
+
+Step 7:
+Create or verify SQL schema for:
+users
+books
+reading_sessions
+
+Include RLS policies and auth trigger.
+If the schema already exists in Supabase, do not recreate destructively.
+Instead, verify expected columns and relationships.
+
+Step 8:
+Build auth screens:
+landing
+signup
+login
+
+Step 9:
+Build onboarding.
+Onboarding should create/update user profile and create first book.
+
+Step 10:
+Build dashboard using real Supabase data.
+
+Step 11:
+Build reading session flow with real inserts and updates.
+
+Step 12:
+Build history screen with real sessions.
+
+Step 13:
+Build books screen with real book records.
+
+Step 14:
+Build settings with real updates.
+
+Step 15:
+Polish UI, empty states, loading states, error states, and mobile responsiveness.
+
+Step 16:
+Explain exactly what was built and what environment variables are needed.
+
+FINAL RESPONSE REQUIREMENTS
+
+When finished, provide:
+1. Summary of what was built
+2. Supabase connection explanation
+3. Files created or changed
+4. Environment variables needed
+5. Database schema or SQL needed
+6. RLS policy summary
+7. Auth flow explanation
+8. How to test sign up
+9. How to test sign in
+10. How to test logging a reading session
+11. Any remaining placeholders or limitations
+
+MOST IMPORTANT INSTRUCTION
+
+Never connect to the Replit replica database.
+Never use a fake database as the main backend.
+Always use the real Supabase database through the official Supabase client setup.
+
+The final app should feel like a real BookBuddy MVP:
+calm, premium, low friction, forgiving, and fully connected to Supabase.

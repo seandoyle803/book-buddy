@@ -1,0 +1,536 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification for BookBuddy
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: Dashboard summary and stats
+  - name: profile
+    description: User profile management
+  - name: books
+    description: Book library management
+  - name: sessions
+    description: Reading session management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary
+      description: Returns aggregated reading stats for the authenticated user. User identity is derived from the Authorization Bearer token.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard summary data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update authenticated user's profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /books:
+    get:
+      operationId: listBooks
+      tags: [books]
+      summary: List all books for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createBook
+      tags: [books]
+      summary: Add a new book to the authenticated user's library
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookRequest"
+      responses:
+        "201":
+          description: Created book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /books/{bookId}:
+    patch:
+      operationId: updateBook
+      tags: [books]
+      summary: Update a book
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookRequest"
+      responses:
+        "200":
+          description: Updated book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteBook
+      tags: [books]
+      summary: Delete a book
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Book deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List reading sessions for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: List of reading sessions with joined book
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReadingSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Log a new reading session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        "201":
+          description: Created reading session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        display_name:
+          type: ["string", "null"]
+        daily_goal_minutes:
+          type: integer
+        reminder_enabled:
+          type: boolean
+        reminder_time:
+          type: ["string", "null"]
+        burnout_window_start:
+          type: ["string", "null"]
+        burnout_window_end:
+          type: ["string", "null"]
+        dark_mode:
+          type: boolean
+        created_at:
+          type: string
+      required:
+        - id
+        - email
+        - daily_goal_minutes
+        - reminder_enabled
+        - dark_mode
+        - created_at
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: ["string", "null"]
+        daily_goal_minutes:
+          type: integer
+          minimum: 1
+          maximum: 600
+        reminder_enabled:
+          type: boolean
+        reminder_time:
+          type: ["string", "null"]
+        burnout_window_start:
+          type: ["string", "null"]
+        burnout_window_end:
+          type: ["string", "null"]
+        dark_mode:
+          type: boolean
+
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        author:
+          type: ["string", "null"]
+        total_pages:
+          type: integer
+        current_page:
+          type: integer
+        is_completed:
+          type: boolean
+        completed_at:
+          type: ["string", "null"]
+        last_read_at:
+          type: ["string", "null"]
+        is_current:
+          type: boolean
+        created_at:
+          type: string
+      required:
+        - id
+        - user_id
+        - title
+        - total_pages
+        - current_page
+        - is_completed
+        - is_current
+        - created_at
+
+    CreateBookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: ["string", "null"]
+        total_pages:
+          type: integer
+          minimum: 1
+        current_page:
+          type: integer
+          minimum: 0
+        is_current:
+          type: boolean
+      required:
+        - title
+        - total_pages
+
+    UpdateBookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: ["string", "null"]
+        total_pages:
+          type: integer
+          minimum: 1
+        current_page:
+          type: integer
+          minimum: 0
+        is_completed:
+          type: boolean
+        completed_at:
+          type: ["string", "null"]
+        last_read_at:
+          type: ["string", "null"]
+        is_current:
+          type: boolean
+
+    ReadingSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        book_id:
+          type: string
+          format: uuid
+        pages_read:
+          type: integer
+        minutes_read:
+          type: integer
+        start_page:
+          type: ["integer", "null"]
+        end_page:
+          type: ["integer", "null"]
+        session_date:
+          type: string
+          format: date
+        notes:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        book:
+          oneOf:
+            - $ref: "#/components/schemas/Book"
+            - type: "null"
+      required:
+        - id
+        - user_id
+        - book_id
+        - pages_read
+        - minutes_read
+        - session_date
+        - created_at
+
+    CreateSessionRequest:
+      type: object
+      properties:
+        book_id:
+          type: string
+          format: uuid
+        pages_read:
+          type: integer
+          minimum: 0
+        minutes_read:
+          type: integer
+          minimum: 0
+        start_page:
+          type: ["integer", "null"]
+        end_page:
+          type: ["integer", "null"]
+        session_date:
+          type: string
+          format: date
+        notes:
+          type: ["string", "null"]
+      required:
+        - book_id
+        - pages_read
+        - minutes_read
+        - session_date
+
+    DashboardSummary:
+      type: object
+      properties:
+        todayMinutes:
+          type: number
+          description: Total minutes read today
+        weeklyActiveDays:
+          type: number
+          description: Number of days with reading activity this week (Mon-Sun)
+        currentStreak:
+          type: number
+          description: Current consecutive reading days streak
+        longestStreak:
+          type: number
+          description: Longest streak ever achieved
+        weeklyConsistency:
+          type: string
+          description: "e.g. '4 of 7 days'"
+        daysSinceLastSession:
+          type: ["number", "null"]
+          description: Days since the last reading session (null if never read)
+        totalPagesAllTime:
+          type: number
+          description: Total pages read across all sessions
+        totalMinutesAllTime:
+          type: number
+          description: Total minutes read across all sessions
+        totalSessionsAllTime:
+          type: number
+          description: Total number of reading sessions
+      required:
+        - todayMinutes
+        - weeklyActiveDays
+        - currentStreak
+        - longestStreak
+        - weeklyConsistency
+        - daysSinceLastSession
+        - totalPagesAllTime
+        - totalMinutesAllTime
+        - totalSessionsAllTime
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
