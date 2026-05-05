@@ -18,6 +18,7 @@ import Books from "@/pages/books";
 import History from "@/pages/history";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 setAuthTokenGetter(async () => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -97,6 +98,7 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <GoogleAnalytics />
             <Router />
           </WouterRouter>
           <Toaster />
